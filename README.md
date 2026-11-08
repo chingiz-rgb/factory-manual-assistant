@@ -126,8 +126,6 @@ tests/                unit tests
 Shynggyskhan Duisen, Software Engineering student at Kyoto University of Advanced Science.
 [LinkedIn](https://www.linkedin.com/in/shynggyskhan-duisen)
 
-Built with the help of an AI coding assistant (Claude Code).
-
 ## License
 
 MIT
