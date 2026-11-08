@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildUserPrompt, type Source } from "../src/lib/prompt";
+import { buildUserPrompt, languageOf, needsTranslation, type Source } from "../src/lib/prompt";
 import { reciprocalRankFusion } from "../src/lib/rank";
 
 describe("reciprocalRankFusion", () => {
@@ -34,5 +34,35 @@ describe("buildUserPrompt", () => {
 
   it("says so when there are no excerpts", () => {
     expect(buildUserPrompt("?", [])).toContain("(no excerpts found)");
+  });
+});
+
+describe("needsTranslation", () => {
+  it("detects Japanese and Russian questions", () => {
+    expect(needsTranslation("旋盤を始動する前に何を確認すればいいですか？")).toBe(true);
+    expect(needsTranslation("Как заменить пластину?")).toBe(true);
+  });
+
+  it("keeps English questions, even with codes and units", () => {
+    expect(needsTranslation("Alarm E-21 on the CL-200, what now?")).toBe(false);
+    expect(needsTranslation("25 N·m?")).toBe(false);
+  });
+
+  it("treats mixed Japanese text with an English code as Japanese", () => {
+    expect(needsTranslation("E-21のアラームが出ました。どうすればいいですか")).toBe(true);
+  });
+});
+
+describe("languageOf", () => {
+  it("detects the question language by script", () => {
+    expect(languageOf("旋盤を始動する前に")).toBe("Japanese");
+    expect(languageOf("工具交換")).toBe("Chinese");
+    expect(languageOf("Как заменить?")).toBe("Russian");
+    expect(languageOf("Alarm E-21?")).toBe("English");
+  });
+
+  it("tells the model to answer in Japanese for Japanese questions", () => {
+    expect(buildUserPrompt("E-21のアラームは？", [])).toContain("Write the whole answer in Japanese.");
+    expect(buildUserPrompt("What is E-21?", [])).not.toContain("Write the whole answer");
   });
 });

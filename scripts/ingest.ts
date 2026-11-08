@@ -2,6 +2,7 @@
  * npm run ingest — rebuilds the search index from the manuals folder.
  * Stop the dev server first: the embedded database can only be opened by one process.
  */
+import { closeDb } from "../src/lib/db";
 import { ingestAll } from "../src/lib/ingest";
 
 async function main() {
@@ -16,10 +17,9 @@ async function main() {
   if (result.warning) console.warn(result.warning);
 }
 
-main().then(
-  () => process.exit(0),
-  (err) => {
+main()
+  .catch((err) => {
     console.error(err);
-    process.exit(1);
-  },
-);
+    process.exitCode = 1;
+  })
+  .finally(closeDb);

@@ -45,3 +45,11 @@ export function getDb(): Promise<PGlite> {
 export function toVectorLiteral(v: number[]): string {
   return `[${v.join(",")}]`;
 }
+
+/** Closes the database cleanly (used by CLI scripts before exiting). */
+export async function closeDb(): Promise<void> {
+  if (!globalForDb.__pg) return;
+  const db = await globalForDb.__pg;
+  globalForDb.__pg = undefined;
+  await db.close();
+}

@@ -1,11 +1,17 @@
-import { answerStream } from "@/lib/answer";
+import { answerStream, complete } from "@/lib/answer";
 import { config } from "@/lib/config";
 import { indexStats, ingestAll } from "@/lib/ingest";
-import { buildUserPrompt, SYSTEM_PROMPT } from "@/lib/prompt";
+import {
+  buildUserPrompt,
+  needsTranslation,
+  SEARCH_QUERY_PROMPT,
+  SYSTEM_PROMPT,
+} from "@/lib/prompt";
 import { hybridSearch } from "@/lib/search";
 
 /**
  * POST { question } → a stream of newline-delimited JSON events:
+ *   { type: "searchQuery", text }  English search text (only for non-English questions)
  *   { type: "sources", sources }   the manual excerpts used
  *   { type: "token", text }        part of the answer
  *   { type: "error", message }
@@ -26,7 +32,14 @@ export async function POST(req: Request) {
         // First run: build the index automatically.
         if ((await indexStats()).chunks === 0) await ingestAll();
 
-        const sources = await hybridSearch(q, config.topK);
+        // The manuals are in English: search with an English version of the question,
+        // but answer the original question so the reply stays in the worker's language.
+        let searchQuery = q;
+        if (needsTranslation(q)) {
+          searchQuery = (await complete(SEARCH_QUERY_PROMPT, q)) || q;
+          send({ type: "searchQuery", text: searchQuery });
+        }
+        const sources = await hybridSearch(searchQuery, config.topK);
         send({ type: "sources", sources });
 
         if (sources.length === 0) {

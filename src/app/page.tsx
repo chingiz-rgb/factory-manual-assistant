@@ -14,6 +14,7 @@ interface Turn {
   question: string;
   answer: string;
   sources: Source[];
+  searchQuery?: string;
   error?: string;
   pending: boolean;
 }
@@ -133,6 +134,7 @@ export default function Home() {
           buf = buf.slice(nl + 1);
           if (!line.trim()) continue;
           const ev = JSON.parse(line);
+          if (ev.type === "searchQuery") update(index, (t) => ({ ...t, searchQuery: ev.text }));
           if (ev.type === "sources") update(index, (t) => ({ ...t, sources: ev.sources }));
           if (ev.type === "token") update(index, (t) => ({ ...t, answer: t.answer + ev.text }));
           if (ev.type === "error") update(index, (t) => ({ ...t, error: ev.message }));
@@ -229,6 +231,11 @@ export default function Home() {
               <div className="ml-auto w-fit max-w-[85%] rounded-2xl rounded-br-sm bg-amber-500 px-4 py-2 text-white">
                 {t.question}
               </div>
+              {t.searchQuery && (
+                <p className="text-right text-[11px] text-zinc-500">
+                  Searched the English manuals for: “{t.searchQuery}”
+                </p>
+              )}
 
               <div className="rounded-2xl rounded-bl-sm border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-900">
                 {t.answer ? (
@@ -245,40 +252,54 @@ export default function Home() {
                 )}
               </div>
 
-              {t.sources.length > 0 && (
-                <details className="group" open={!t.pending}>
-                  <summary className="cursor-pointer text-xs font-medium text-zinc-500 select-none">
-                    Sources ({t.sources.length})
-                  </summary>
-                  <div className="mt-2 space-y-2">
-                    {t.sources.map((s) => {
-                      const key = `${ti}-${s.n}`;
-                      return (
-                        <div
-                          key={key}
-                          id={`src-${key}`}
-                          className={`rounded-lg border p-3 text-sm transition-colors ${
-                            highlight === key
-                              ? "border-amber-400 bg-amber-50 dark:bg-amber-950/40"
-                              : "border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900"
-                          }`}
-                        >
-                          <div className="mb-1 flex items-baseline gap-2">
-                            <span className="rounded bg-amber-100 px-1.5 text-[11px] font-semibold text-amber-900 dark:bg-amber-900/50 dark:text-amber-200">
-                              {s.n}
-                            </span>
-                            <span className="font-medium">{s.document}</span>
-                            <span className="truncate text-xs text-zinc-500">{s.section}</span>
-                          </div>
-                          <p className="line-clamp-4 whitespace-pre-line text-xs text-zinc-600 dark:text-zinc-400">
-                            {s.content}
-                          </p>
-                        </div>
-                      );
-                    })}
+              {t.sources.length > 0 && !t.pending && (() => {
+                const citedNs = new Set([...t.answer.matchAll(/\[(\d+)\]/g)].map((m) => Number(m[1])));
+                const cited = t.sources.filter((s) => citedNs.has(s.n));
+                const other = t.sources.filter((s) => !citedNs.has(s.n));
+                const card = (s: Source) => {
+                  const key = `${ti}-${s.n}`;
+                  return (
+                    <div
+                      key={key}
+                      id={`src-${key}`}
+                      className={`rounded-lg border p-3 text-sm transition-colors ${
+                        highlight === key
+                          ? "border-amber-400 bg-amber-50 dark:bg-amber-950/40"
+                          : "border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900"
+                      }`}
+                    >
+                      <div className="mb-1 flex flex-wrap items-baseline gap-x-2">
+                        <span className="rounded bg-amber-100 px-1.5 text-[11px] font-semibold text-amber-900 dark:bg-amber-900/50 dark:text-amber-200">
+                          {s.n}
+                        </span>
+                        <span className="font-medium">{s.document}</span>
+                        <span className="text-xs text-zinc-500">{s.section}</span>
+                      </div>
+                      <p className="line-clamp-4 whitespace-pre-line text-xs text-zinc-600 dark:text-zinc-400">
+                        {s.content}
+                      </p>
+                    </div>
+                  );
+                };
+                return (
+                  <div className="space-y-2">
+                    {cited.length > 0 && (
+                      <>
+                        <p className="text-xs font-medium text-zinc-500">Cited sources</p>
+                        {cited.map(card)}
+                      </>
+                    )}
+                    {other.length > 0 && (
+                      <details open={cited.length === 0}>
+                        <summary className="cursor-pointer text-xs font-medium text-zinc-500 select-none">
+                          Other search results ({other.length})
+                        </summary>
+                        <div className="mt-2 space-y-2">{other.map(card)}</div>
+                      </details>
+                    )}
                   </div>
-                </details>
-              )}
+                );
+              })()}
             </section>
           ))}
         </div>

@@ -8,6 +8,8 @@ Ask a factory manual a question in plain words and get a short answer **with the
 
 Knowledge on a factory floor lives in thick manuals and in experienced workers' heads. New workers often don't know where to look, and a wrong guess about a torque value or a safety step can hurt someone. This project is a retrieval-augmented generation (RAG) assistant that only answers from the manuals it is given, cites every fact, and says "I couldn't find it, ask your supervisor" instead of guessing.
 
+![Answer with a cited manual section](docs/answer.jpg)
+
 It runs **completely free and locally** with an open-source model through [Ollama](https://ollama.com). A setting switches it to Claude.
 
 ## Features
@@ -17,8 +19,14 @@ It runs **completely free and locally** with an open-source model through [Ollam
 - **Grounded and safety-aware prompt:** the model must copy numbers exactly, put safety steps first, and refuse to guess.
 - **Graceful degradation:** if the embedding model is unavailable, keyword search keeps working.
 - **Bring your own manuals:** drop `.md`, `.txt` or `.pdf` files into `manuals/` and press **Re-index**.
-- **Replies in the question's language,** for example Japanese questions about English manuals.
+- **Multilingual questions:** a Japanese or Russian question is translated into English for searching, and the answer comes back in the original language.
 - **Local or cloud model:** free local model (default) or Claude via the Anthropic API, chosen with one environment variable.
+
+## Screenshots
+
+| Start screen | Japanese question, English manuals |
+|---|---|
+| ![Start screen](docs/home.jpg) | ![Japanese question](docs/japanese.jpg) |
 
 ## How it works
 
@@ -109,6 +117,7 @@ tests/                unit tests
 ## Limitations and next steps
 
 - Each question is answered on its own, with no follow-up memory yet.
+- The small local model (7B) sometimes picks a slightly wrong citation number or awkward wording in Japanese. Claude gives cleaner answers.
 - PDF tables and scanned (image-only) PDFs are not parsed well. OCR would help.
 - Next steps: an evaluation set of question/answer pairs to measure retrieval accuracy, re-ranking, a Japanese tokenizer for keyword search, and showing the source page side by side.
 
